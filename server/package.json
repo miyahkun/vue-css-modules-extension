@@ -1,0 +1,16 @@
+{
+  "name": "vue-css-modules-server",
+  "description": "Example implementation of a language server in node.",
+  "version": "0.0.1",
+  "author": "Keiji Miyazaki <miyah.dev@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "repository": "git@github.com:miyahkun/vue-css-modules-extension.git",
+  "dependencies": {
+    "vscode-languageserver": "^7.0.0",
+    "vscode-languageserver-textdocument": "^1.0.1"
+  },
+  "scripts": {}
+}
