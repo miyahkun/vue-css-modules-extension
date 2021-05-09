@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
-describe('Should get diagnostics', () => {
+suite('Should get diagnostics', () => {
   const docUri = getDocUri('diagnostics.txt');
 
   test('Diagnoses uppercase texts', async () => {

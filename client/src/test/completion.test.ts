@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
-describe('Should do completion', () => {
+suite('Should do completion', () => {
   const docUri = getDocUri('completion.txt');
 
   test('Completes JS/TS in txt file', async () => {
