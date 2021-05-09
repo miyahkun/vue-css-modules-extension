@@ -1,3 +1,4 @@
+import * as path from 'path'
 import {
   createConnection,
   TextDocuments,
@@ -12,10 +13,14 @@ import {
   TextDocumentSyncKind,
   InitializeResult
 } from 'vscode-languageserver/node';
-
 import {
+  getCSSLanguageService,
+  getSCSSLanguageService,
+  getLESSLanguageService,
   TextDocument
-} from 'vscode-languageserver-textdocument';
+} from 'vscode-css-languageservice';
+import { SymbolKind } from 'vscode-languageserver-types'
+import { VueParser } from './parser'
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -27,6 +32,19 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
+
+const getLanguageService = (fileExtension: string) => {
+  switch (fileExtension) {
+    case '.less':
+      return getLESSLanguageService;
+    case '.scss':
+      return getSCSSLanguageService;
+    default:
+      return getCSSLanguageService;
+  }
+}
+
+let completionItems: CompletionItem[] = []
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -136,6 +154,48 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
   // The validator creates diagnostics for all uppercase words length 2 and more
   const text = textDocument.getText();
+
+  // Reset complitionItem array
+  completionItems.length = 0
+
+  const filename = textDocument.uri.split('/').pop() || ''
+  const parser = new VueParser({ source: textDocument.getText(), filename })
+  const styles = parser.getStyles() || []
+
+  // array of style tags `<style></style>`
+  for (let i = 0; i < styles.length; i++) {
+    const style = styles[i]
+    const isModule = style?.module
+    if (!isModule) {
+      continue
+    }
+
+    const lang = style?.lang || 'css'
+    const languageService = getLanguageService(lang)
+    const service = languageService()
+    const document = TextDocument.create(textDocument.uri, lang, 0, style.content)
+    const styleSheet = service.parseStylesheet(document)
+    const documentSymbols = service.findDocumentSymbols(document, styleSheet)
+
+    // array of class name of Id (ex. `.hello` or `#App` )
+    for (let k = 0; k < documentSymbols.length; k++) {
+      const sym = documentSymbols[k];
+      const isClassSymbol = sym.kind === SymbolKind.Class
+      const className = sym.name.slice(0, 1) === '.' ? sym.name.slice(1) : null // expected "." or "#"
+      if (!(isClassSymbol && className)) {
+        continue
+      }
+      const completionItem: CompletionItem = {
+        label: className,
+        kind: CompletionItemKind.Field,
+      }
+      completionItems.push(completionItem)
+    }
+
+    connection.console.log(JSON.stringify(completionItems, null, '\t'))
+    connection.console.log(JSON.stringify(completionItems.length, null, '\t'))
+  }
+
   const pattern = /\b[A-Z]{2,}\b/g;
   let m: RegExpExecArray | null;
 
@@ -188,18 +248,7 @@ connection.onCompletion(
     // The pass parameter contains the position of the text document in
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
-    return [
-      {
-        label: 'TypeScript',
-        kind: CompletionItemKind.Text,
-        data: 1
-      },
-      {
-        label: 'JavaScript',
-        kind: CompletionItemKind.Text,
-        data: 2
-      }
-    ];
+    return completionItems;
   }
 );
 
@@ -207,12 +256,12 @@ connection.onCompletion(
 // the completion list.
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
-    if (item.data === 1) {
-      item.detail = 'TypeScript details';
-      item.documentation = 'TypeScript documentation';
-    } else if (item.data === 2) {
-      item.detail = 'JavaScript details';
-      item.documentation = 'JavaScript documentation';
+    if (item.label === 'label') {
+      item.detail = 'Hello CSS';
+      item.documentation = 'Hello CSS documentation';
+    } else if (item.label === 'world') {
+      item.detail = 'World CSS';
+      item.documentation = 'World CSS documentation';
     }
     return item;
   }
