@@ -5,3 +5,13 @@ node_js:
   - "14"
 
 cache: yarn
+
+install:
+  - yarn install
+  - yarn postinstall
+
+before_script:
+  - yarn compile
+
+script:
+  - yarn test
