@@ -72,7 +72,6 @@ connection.onInitialize((params: InitializeParams) => {
     };
   }
 
-  connection.console.log('#### onInitialize ####');
   return result;
 });
 
@@ -81,12 +80,6 @@ connection.onInitialized(() => {
     // Register for all configuration changes.
     connection.client.register(DidChangeConfigurationNotification.type, undefined);
   }
-  if (hasWorkspaceFolderCapability) {
-    connection.workspace.onDidChangeWorkspaceFolders(_event => {
-      connection.console.log('Workspace folder change event received.');
-    });
-  }
-  connection.console.log('#### onInitialized ####');
 });
 
 interface Settings {
@@ -117,6 +110,7 @@ function getDocumentSettings(resource: string): Thenable<Settings> {
   if (!hasConfigurationCapability) {
     return Promise.resolve(globalSettings);
   }
+
   let result = documentSettings.get(resource);
   if (!result) {
     result = connection.workspace.getConfiguration({
@@ -131,14 +125,12 @@ function getDocumentSettings(resource: string): Thenable<Settings> {
 // Only keep settings for open documents
 documents.onDidClose(e => {
   documentSettings.delete(e.document.uri);
-  connection.console.log('#### onDidClose ####');
 });
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
   validateTextDocument(change.document);
-  connection.console.log('#### onDidChangeContent ####');
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
@@ -184,16 +176,10 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         compItemMap.set(className, completionItem);
       }
     }
-
-    completionItems = [...compItemMap.values()];
-    connection.console.log(JSON.stringify(completionItems, null, '\t'));
   }
-}
 
-connection.onDidChangeWatchedFiles(_change => {
-  // Monitored files have change in VSCode
-  connection.console.log('#### onDidChangeWatchedFiles ####');
-});
+  completionItems = [...compItemMap.values()];
+}
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
@@ -201,7 +187,6 @@ connection.onCompletion(
     // The pass parameter contains the position of the text document in
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
-    connection.console.log('#### onCompletion ####');
     return completionItems;
   }
 );
@@ -210,14 +195,6 @@ connection.onCompletion(
 // the completion list.
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
-    if (item.label === 'label') {
-      item.detail = 'Hello CSS';
-      item.documentation = 'Hello CSS documentation';
-    } else if (item.label === 'world') {
-      item.detail = 'World CSS';
-      item.documentation = 'World CSS documentation';
-    }
-    connection.console.log('#### onCompletionResolve ####');
     return item;
   }
 );
